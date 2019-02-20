@@ -29,6 +29,8 @@ import (
 
 	clientset "k8s.io/sample-controller/pkg/client/clientset/versioned"
 	informers "k8s.io/sample-controller/pkg/client/informers/externalversions"
+	barclientset "k8s.io/sample-controller/pkg/client_bar/clientset/versioned"
+	barinformers "k8s.io/sample-controller/pkg/client_bar/informers/externalversions"
 	"k8s.io/sample-controller/pkg/signals"
 )
 
@@ -58,19 +60,37 @@ func main() {
 		klog.Fatalf("Error building example clientset: %s", err.Error())
 	}
 
+	barClient, err := barclientset.NewForConfig(cfg)
+	if err != nil {
+		klog.Fatalf("Error building bar clientset: %s", err.Error())
+	}
+
 	kubeInformerFactory := kubeinformers.NewSharedInformerFactory(kubeClient, time.Second*30)
 	exampleInformerFactory := informers.NewSharedInformerFactory(exampleClient, time.Second*30)
+	barInformerFactory := barinformers.NewSharedInformerFactory(barClient, time.Second*30)
 
 	controller := NewController(kubeClient, exampleClient,
 		kubeInformerFactory.Apps().V1().Deployments(),
 		exampleInformerFactory.Samplecontroller().V1alpha1().Foos())
 
+	barController := NewBarController(kubeClient, barClient,
+		kubeInformerFactory.Apps().V1().Deployments(),
+		barInformerFactory.Samplecontroller().V1alpha1().Bars())
+
 	// notice that there is no need to run Start methods in a separate goroutine. (i.e. go kubeInformerFactory.Start(stopCh)
 	// Start method is non-blocking and runs all registered informers in a dedicated goroutine.
 	kubeInformerFactory.Start(stopCh)
 	exampleInformerFactory.Start(stopCh)
+	barInformerFactory.Start(stopCh)
 
-	if err = controller.Run(2, stopCh); err != nil {
+	go func() {
+		err = controller.Run(2, stopCh)
+		if err != nil {
+			klog.Fatalf("Error running controller: %s", err.Error())
+		}
+	}()
+
+	if err = barController.Run(2, stopCh); err != nil {
 		klog.Fatalf("Error running controller: %s", err.Error())
 	}
 }

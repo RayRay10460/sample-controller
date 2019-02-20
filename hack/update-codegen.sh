@@ -31,5 +31,10 @@ CODEGEN_PKG=${CODEGEN_PKG:-$(cd "${SCRIPT_ROOT}"; ls -d -1 ./vendor/k8s.io/code-
   --output-base "$(dirname "${BASH_SOURCE[0]}")/../../.." \
   --go-header-file "${SCRIPT_ROOT}"/hack/boilerplate.go.txt
 
+"${CODEGEN_PKG}"/generate-groups.sh "deepcopy,client,informer,lister" \
+  k8s.io/sample-controller/pkg/client_bar k8s.io/sample-controller/pkg/apis \
+  shidacontroller:v1alpha1 \
+  --output-base "$(dirname "${BASH_SOURCE[0]}")/../../.." \
+  --go-header-file "${SCRIPT_ROOT}"/hack/boilerplate.go.txt
 # To use your own boilerplate text use:
 #   --go-header-file "${SCRIPT_ROOT}"/hack/custom-boilerplate.go.txt
